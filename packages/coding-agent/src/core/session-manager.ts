@@ -1608,4 +1608,46 @@ export class SessionManager {
 			return [];
 		}
 	}
+
+	/**
+	 * Read the parentSession field from a session file header, without loading the full file.
+	 */
+	static getParentSessionFile(sessionPath: string): string | undefined {
+		const header = readSessionHeader(sessionPath);
+		return header?.parentSession;
+	}
+
+	/**
+	 * Find all child sessions (forked/subagent sessions) of a given parent session.
+	 * Scans the session directory for .jsonl files and checks their parentSession header.
+	 */
+	static async findChildSessions(parentSessionFile: string, sessionDir: string): Promise<SessionInfo[]> {
+		const dir = normalizePath(sessionDir);
+		const resolvedParent = resolvePath(parentSessionFile);
+		try {
+			const files = readdirSync(dir)
+				.filter((f) => f.endsWith(".jsonl"))
+				.map((f) => join(dir, f));
+
+			const childFiles: string[] = [];
+			for (const file of files) {
+				const header = readSessionHeader(file);
+				if (header?.parentSession && resolvePath(header.parentSession) === resolvedParent) {
+					childFiles.push(file);
+				}
+			}
+
+			if (childFiles.length === 0) return [];
+
+			const results = await buildSessionInfosWithConcurrency(childFiles, () => {});
+			const sessions: SessionInfo[] = [];
+			for (const info of results) {
+				if (info) sessions.push(info);
+			}
+			sessions.sort((a, b) => b.modified.getTime() - a.modified.getTime());
+			return sessions;
+		} catch {
+			return [];
+		}
+	}
 }

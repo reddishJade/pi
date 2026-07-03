@@ -81,7 +81,12 @@ import { DefaultPackageManager } from "../../core/package-manager.ts";
 import { BUILT_IN_PROVIDER_DISPLAY_NAMES } from "../../core/provider-display-names.ts";
 import type { ResourceDiagnostic } from "../../core/resource-loader.ts";
 import { formatMissingSessionCwdPrompt, MissingSessionCwdError } from "../../core/session-cwd.ts";
-import { type SessionEntry, SessionManager, sessionEntryToContextMessages } from "../../core/session-manager.ts";
+import {
+	type SessionEntry,
+	type SessionListProgress,
+	SessionManager,
+	sessionEntryToContextMessages,
+} from "../../core/session-manager.ts";
 import { BUILTIN_SLASH_COMMANDS } from "../../core/slash-commands.ts";
 import type { SourceInfo } from "../../core/source-info.ts";
 import { isInstallTelemetryEnabled } from "../../core/telemetry.ts";
@@ -2684,6 +2689,25 @@ export class InteractiveMode {
 				this.editor.setText("");
 				return;
 			}
+			if (text === "/subagents") {
+				this.showSubagentSelector();
+				this.editor.setText("");
+				return;
+			}
+			if (text === "/parent") {
+				const currentSessionFile = this.sessionManager.getSessionFile();
+				if (currentSessionFile) {
+					const parentFile = SessionManager.getParentSessionFile(currentSessionFile);
+					if (parentFile) {
+						this.editor.setText("");
+						await this.handleResumeSession(parentFile);
+						return;
+					}
+				}
+				this.showStatus("No parent session");
+				this.editor.setText("");
+				return;
+			}
 			if (text === "/quit") {
 				this.editor.setText("");
 				await this.shutdown();
@@ -4629,6 +4653,42 @@ export class InteractiveMode {
 					keybindings: this.keybindings,
 				},
 
+				this.sessionManager.getSessionFile(),
+			);
+			return { component: selector, focus: selector };
+		});
+	}
+
+	private showSubagentSelector(): void {
+		const currentSessionFile = this.sessionManager.getSessionFile();
+		if (!currentSessionFile) {
+			this.showStatus("No current session file");
+			return;
+		}
+		this.showSelector((done) => {
+			const childSessionLoader = async (_onProgress?: SessionListProgress) => {
+				return SessionManager.findChildSessions(currentSessionFile, this.sessionManager.getSessionDir());
+			};
+
+			const selector = new SessionSelectorComponent(
+				childSessionLoader,
+				childSessionLoader,
+				async (sessionPath) => {
+					done();
+					await this.handleResumeSession(sessionPath);
+				},
+				() => {
+					done();
+					this.ui.requestRender();
+				},
+				() => {
+					void this.shutdown();
+				},
+				() => this.ui.requestRender(),
+				{
+					showRenameHint: false,
+					keybindings: this.keybindings,
+				},
 				this.sessionManager.getSessionFile(),
 			);
 			return { component: selector, focus: selector };
