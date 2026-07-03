@@ -43,6 +43,10 @@ export {
 	type LsToolOptions,
 } from "./ls.ts";
 export {
+	createQuestionTool,
+	createQuestionToolDefinition,
+} from "./question.ts";
+export {
 	createReadTool,
 	createReadToolDefinition,
 	type ReadOperations,
@@ -50,6 +54,18 @@ export {
 	type ReadToolInput,
 	type ReadToolOptions,
 } from "./read.ts";
+export {
+	createTaskTool,
+	createTaskToolDefinition,
+	type TaskToolInput,
+	type TaskToolOptions,
+} from "./task.ts";
+export {
+	createTodoWriteTool,
+	createTodoWriteToolDefinition,
+	type TodoWriteToolInput,
+	type TodoWriteToolOptions,
+} from "./todowrite.ts";
 export {
 	DEFAULT_MAX_BYTES,
 	DEFAULT_MAX_LINES,
@@ -60,6 +76,18 @@ export {
 	truncateLine,
 	truncateTail,
 } from "./truncate.ts";
+export {
+	createWebFetchTool,
+	createWebFetchToolDefinition,
+	type WebFetchToolInput,
+	type WebFetchToolOptions,
+} from "./webfetch.ts";
+export {
+	createWebSearchTool,
+	createWebSearchToolDefinition,
+	type WebSearchToolInput,
+	type WebSearchToolOptions,
+} from "./websearch.ts";
 export {
 	createWriteTool,
 	createWriteToolDefinition,
@@ -75,13 +103,43 @@ import { createEditTool, createEditToolDefinition, type EditToolOptions } from "
 import { createFindTool, createFindToolDefinition, type FindToolOptions } from "./find.ts";
 import { createGrepTool, createGrepToolDefinition, type GrepToolOptions } from "./grep.ts";
 import { createLsTool, createLsToolDefinition, type LsToolOptions } from "./ls.ts";
+import { createQuestionTool, createQuestionToolDefinition } from "./question.ts";
 import { createReadTool, createReadToolDefinition, type ReadToolOptions } from "./read.ts";
+import { createTaskTool, createTaskToolDefinition, type TaskToolOptions } from "./task.ts";
+import { createTodoWriteTool, createTodoWriteToolDefinition, type TodoWriteToolOptions } from "./todowrite.ts";
+import { createWebFetchTool, createWebFetchToolDefinition, type WebFetchToolOptions } from "./webfetch.ts";
+import { createWebSearchTool, createWebSearchToolDefinition, type WebSearchToolOptions } from "./websearch.ts";
 import { createWriteTool, createWriteToolDefinition, type WriteToolOptions } from "./write.ts";
 
 export type Tool = AgentTool<any>;
 export type ToolDef = ToolDefinition<any, any>;
-export type ToolName = "read" | "bash" | "edit" | "write" | "grep" | "find" | "ls";
-export const allToolNames: Set<ToolName> = new Set(["read", "bash", "edit", "write", "grep", "find", "ls"]);
+export type ToolName =
+	| "read"
+	| "bash"
+	| "edit"
+	| "write"
+	| "grep"
+	| "find"
+	| "ls"
+	| "task"
+	| "todowrite"
+	| "webfetch"
+	| "websearch"
+	| "question";
+export const allToolNames: Set<ToolName> = new Set([
+	"read",
+	"bash",
+	"edit",
+	"write",
+	"grep",
+	"find",
+	"ls",
+	"task",
+	"todowrite",
+	"webfetch",
+	"websearch",
+	"question",
+]);
 
 export interface ToolsOptions {
 	read?: ReadToolOptions;
@@ -91,6 +149,10 @@ export interface ToolsOptions {
 	grep?: GrepToolOptions;
 	find?: FindToolOptions;
 	ls?: LsToolOptions;
+	task?: TaskToolOptions;
+	todowrite?: TodoWriteToolOptions;
+	webfetch?: WebFetchToolOptions;
+	websearch?: WebSearchToolOptions;
 }
 
 export function createToolDefinition(toolName: ToolName, cwd: string, options?: ToolsOptions): ToolDef {
@@ -109,6 +171,16 @@ export function createToolDefinition(toolName: ToolName, cwd: string, options?: 
 			return createFindToolDefinition(cwd, options?.find);
 		case "ls":
 			return createLsToolDefinition(cwd, options?.ls);
+		case "task":
+			return createTaskToolDefinition(cwd, options?.task);
+		case "todowrite":
+			return createTodoWriteToolDefinition(cwd, options?.todowrite);
+		case "webfetch":
+			return createWebFetchToolDefinition(cwd, options?.webfetch);
+		case "websearch":
+			return createWebSearchToolDefinition(cwd, options?.websearch);
+		case "question":
+			return createQuestionToolDefinition(cwd);
 		default:
 			throw new Error(`Unknown tool name: ${toolName}`);
 	}
@@ -130,6 +202,16 @@ export function createTool(toolName: ToolName, cwd: string, options?: ToolsOptio
 			return createFindTool(cwd, options?.find);
 		case "ls":
 			return createLsTool(cwd, options?.ls);
+		case "task":
+			return createTaskTool(cwd, options?.task);
+		case "todowrite":
+			return createTodoWriteTool(cwd, options?.todowrite);
+		case "webfetch":
+			return createWebFetchTool(cwd, options?.webfetch);
+		case "websearch":
+			return createWebSearchTool(cwd, options?.websearch);
+		case "question":
+			return createQuestionTool(cwd);
 		default:
 			throw new Error(`Unknown tool name: ${toolName}`);
 	}
@@ -162,6 +244,11 @@ export function createAllToolDefinitions(cwd: string, options?: ToolsOptions): R
 		grep: createGrepToolDefinition(cwd, options?.grep),
 		find: createFindToolDefinition(cwd, options?.find),
 		ls: createLsToolDefinition(cwd, options?.ls),
+		task: createTaskToolDefinition(cwd, options?.task),
+		todowrite: createTodoWriteToolDefinition(cwd, options?.todowrite),
+		webfetch: createWebFetchToolDefinition(cwd, options?.webfetch),
+		websearch: createWebSearchToolDefinition(cwd, options?.websearch),
+		question: createQuestionToolDefinition(cwd),
 	};
 }
 
@@ -192,5 +279,10 @@ export function createAllTools(cwd: string, options?: ToolsOptions): Record<Tool
 		grep: createGrepTool(cwd, options?.grep),
 		find: createFindTool(cwd, options?.find),
 		ls: createLsTool(cwd, options?.ls),
+		task: createTaskTool(cwd, options?.task),
+		todowrite: createTodoWriteTool(cwd, options?.todowrite),
+		webfetch: createWebFetchTool(cwd, options?.webfetch),
+		websearch: createWebSearchTool(cwd, options?.websearch),
+		question: createQuestionTool(cwd),
 	};
 }
