@@ -34,20 +34,29 @@ $packages = @(
 foreach ($pkg in $packages) {
     Write-Host "  Building $($pkg.Name)..." -ForegroundColor Yellow
     Set-Location "$RepoRoot/$($pkg.Path)"
-    npm run build 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        if ($pkg.Name -eq "ai") {
-            # Retry: restore model files and rebuild without model regeneration
-            Write-Host "  AI build failed (likely network). Restoring model files and retrying..." -ForegroundColor Yellow
+
+    if ($pkg.Name -eq "ai") {
+        # generate-models fetches model lists from the internet.
+        # Retry up to 3 times if network is flaky, then fall back to git.
+        $genOk = $false
+        for ($try = 1; $try -le 3; $try++) {
+            npm run generate-models 2>&1
+            if ($LASTEXITCODE -eq 0) { $genOk = $true; break }
+            Write-Host "    Retry $try/3 for generate-models..." -ForegroundColor DarkYellow
+            Start-Sleep -Seconds 3
+        }
+        if (-not $genOk) {
+            Write-Host "  generate-models failed after 3 retries (network issue). Using git version." -ForegroundColor Yellow
             Set-Location $RepoRoot
             git checkout HEAD -- packages/ai/src/providers/*.models.ts packages/ai/src/models.generated.ts
             Set-Location "$RepoRoot/packages/ai"
-            npm run generate-image-models
-            tsgo -p tsconfig.build.json
-            if ($LASTEXITCODE -ne 0) { throw "Failed to build ai package" }
-        } else {
-            throw "Failed to build $($pkg.Name)"
         }
+        npm run generate-image-models
+        tsgo -p tsconfig.build.json
+        if ($LASTEXITCODE -ne 0) { throw "Failed to build ai package" }
+    } else {
+        npm run build 2>&1
+        if ($LASTEXITCODE -ne 0) { throw "Failed to build $($pkg.Name)" }
     }
 }
 
