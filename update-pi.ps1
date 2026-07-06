@@ -69,9 +69,9 @@ $null = New-Item -ItemType Directory -Path "$OutDir\theme", "$OutDir\assets", "$
 
 Copy-Item "$RepoRoot\packages\coding-agent\dist\modes\interactive\theme\*.json" "$OutDir\theme\"
 Copy-Item "$RepoRoot\packages\coding-agent\dist\modes\interactive\assets\*.png" "$OutDir\assets\"
-Copy-Item "$RepoRoot\packages\coding-agent\dist\core\export-html\*" "$OutDir\export-html\" -Recurse
-Copy-Item "$RepoRoot\packages\coding-agent\docs\*" "$OutDir\docs\" -Recurse
-Copy-Item "$RepoRoot\packages\coding-agent\examples\*" "$OutDir\examples\" -Recurse
+Copy-Item "$RepoRoot\packages\coding-agent\dist\core\export-html\*" "$OutDir\export-html\" -Recurse -Force
+Copy-Item "$RepoRoot\packages\coding-agent\docs\*" "$OutDir\docs\" -Recurse -Force
+Copy-Item "$RepoRoot\packages\coding-agent\examples\*" "$OutDir\examples\" -Recurse -Force
 Copy-Item "$RepoRoot\node_modules\@silvia-odwyer\photon-node\photon_rs_bg.wasm" "$OutDir\"
 
 Copy-Item "$RepoRoot\node_modules\@mariozechner\clipboard\*" "$OutDir\node_modules\@mariozechner\clipboard\" -Recurse
