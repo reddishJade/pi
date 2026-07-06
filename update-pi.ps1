@@ -11,6 +11,8 @@ Set-Location $RepoRoot
 if (-not $SkipPull) {
     Write-Host "==> Pulling upstream..." -ForegroundColor Cyan
     git pull upstream main
+    Write-Host "==> Syncing fork..." -ForegroundColor Cyan
+    git push origin main
 }
 
 Write-Host "==> Building all packages..." -ForegroundColor Cyan
