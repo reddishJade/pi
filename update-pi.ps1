@@ -9,10 +9,25 @@ $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $RepoRoot
 
 if (-not $SkipPull) {
+    Write-Host "==> Stashing local changes..." -ForegroundColor Cyan
+    git stash push -m "update-pi: auto-stash before pull" 2>$null
+
     Write-Host "==> Pulling upstream..." -ForegroundColor Cyan
-    git pull upstream main
+    git pull --no-rebase upstream main 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        git stash pop 2>$null
+        throw "git pull failed - resolve conflicts manually"
+    }
+
     Write-Host "==> Syncing fork..." -ForegroundColor Cyan
-    git push origin main
+    git push origin main 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        git stash pop 2>$null
+        throw "git push failed"
+    }
+
+    Write-Host "==> Restoring stashed changes..." -ForegroundColor Cyan
+    git stash pop 2>$null
 }
 
 # Ensure generated model files exist before building
