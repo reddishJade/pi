@@ -15,12 +15,44 @@ if (-not $SkipPull) {
     git push origin main
 }
 
-Write-Host "==> Building all packages..." -ForegroundColor Cyan
-npm run build
+# Ensure generated model files exist before building
+# (generate-models.ts deletes them on start, but may fail to recreate if offline)
+Write-Host "==> Restoring model files from git (if missing)..." -ForegroundColor Cyan
+git checkout HEAD -- packages/ai/src/providers/*.models.ts 2>$null
+git checkout HEAD -- packages/ai/src/models.generated.ts 2>$null
+
+# Build packages in dependency order, handling ai model gen failures gracefully
+Write-Host "==> Building packages..." -ForegroundColor Cyan
+$packages = @(
+    @{Name="tui"; Path="packages/tui"},
+    @{Name="ai"; Path="packages/ai"},
+    @{Name="agent"; Path="packages/agent-core"},
+    @{Name="coding-agent"; Path="packages/coding-agent"},
+    @{Name="orchestrator"; Path="packages/orchestrator"}
+)
+
+foreach ($pkg in $packages) {
+    Write-Host "  Building $($pkg.Name)..." -ForegroundColor Yellow
+    Set-Location "$RepoRoot/$($pkg.Path)"
+    npm run build 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        if ($pkg.Name -eq "ai") {
+            # Retry: restore model files and rebuild without model regeneration
+            Write-Host "  AI build failed (likely network). Restoring model files and retrying..." -ForegroundColor Yellow
+            Set-Location $RepoRoot
+            git checkout HEAD -- packages/ai/src/providers/*.models.ts packages/ai/src/models.generated.ts
+            Set-Location "$RepoRoot/packages/ai"
+            npm run generate-image-models
+            tsgo -p tsconfig.build.json
+            if ($LASTEXITCODE -ne 0) { throw "Failed to build ai package" }
+        } else {
+            throw "Failed to build $($pkg.Name)"
+        }
+    }
+}
 
 Write-Host "==> Compiling binary..." -ForegroundColor Cyan
 Set-Location "$RepoRoot\packages\coding-agent"
-
 bun build --compile --target=bun-windows-x64 ./dist/bun/cli.js ./src/utils/image-resize-worker.ts --outfile "$OutDir\pi.exe"
 
 Write-Host "==> Copying assets..." -ForegroundColor Cyan
