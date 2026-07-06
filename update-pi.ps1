@@ -52,7 +52,7 @@ foreach ($pkg in $packages) {
             Set-Location "$RepoRoot/packages/ai"
         }
         npm run generate-image-models
-        tsgo -p tsconfig.build.json
+        & "$RepoRoot\node_modules\.bin\tsgo.cmd" -p tsconfig.build.json
         if ($LASTEXITCODE -ne 0) { throw "Failed to build ai package" }
     } else {
         npm run build 2>&1
